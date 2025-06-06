@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -16,11 +16,27 @@ const AuthPage = () => {
   const [fullName, setFullName] = useState('');
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (user && !authLoading) {
+      console.log('User is authenticated, redirecting to dashboard');
+      window.location.href = '/dashboard';
+    }
+  }, [user, authLoading]);
+
+  // Don't render if still loading or if user is authenticated
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-background to-muted flex items-center justify-center">
+        <div>Loading...</div>
+      </div>
+    );
+  }
 
   if (user) {
-    window.location.href = '/dashboard';
-    return null;
+    return null; // Will redirect via useEffect
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -29,7 +45,8 @@ const AuthPage = () => {
 
     try {
       if (isSignUp) {
-        const { error } = await supabase.auth.signUp({
+        console.log('Attempting sign up for:', email);
+        const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
@@ -39,23 +56,45 @@ const AuthPage = () => {
             emailRedirectTo: `${window.location.origin}/dashboard`,
           },
         });
+        
         if (error) throw error;
-        toast({
-          title: "Success!",
-          description: "Please check your email to confirm your account.",
-        });
+        
+        if (data.user && !data.session) {
+          toast({
+            title: "Check your email",
+            description: "Please check your email to confirm your account before signing in.",
+          });
+        } else if (data.session) {
+          toast({
+            title: "Welcome!",
+            description: "Account created successfully.",
+          });
+          console.log('Sign up successful, redirecting...');
+          window.location.href = '/dashboard';
+        }
       } else {
-        const { error } = await supabase.auth.signInWithPassword({
+        console.log('Attempting sign in for:', email);
+        const { data, error } = await supabase.auth.signInWithPassword({
           email,
           password,
         });
+        
         if (error) throw error;
-        window.location.href = '/dashboard';
+        
+        if (data.session) {
+          toast({
+            title: "Welcome back!",
+            description: "Successfully signed in.",
+          });
+          console.log('Sign in successful, redirecting...');
+          window.location.href = '/dashboard';
+        }
       }
     } catch (error: any) {
+      console.error('Auth error:', error);
       toast({
         title: "Error",
-        description: error.message,
+        description: error.message || 'An error occurred during authentication',
         variant: "destructive",
       });
     } finally {
@@ -65,6 +104,7 @@ const AuthPage = () => {
 
   const handleGoogleSignIn = async () => {
     try {
+      console.log('Attempting Google sign in');
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
@@ -73,9 +113,10 @@ const AuthPage = () => {
       });
       if (error) throw error;
     } catch (error: any) {
+      console.error('Google auth error:', error);
       toast({
         title: "Error",
-        description: error.message,
+        description: error.message || 'Failed to sign in with Google',
         variant: "destructive",
       });
     }
@@ -105,6 +146,7 @@ const AuthPage = () => {
             variant="outline"
             className="w-full"
             type="button"
+            disabled={loading}
           >
             Continue with Google
           </Button>
@@ -130,6 +172,7 @@ const AuthPage = () => {
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
                   required
+                  disabled={loading}
                 />
               </div>
             )}
@@ -141,6 +184,7 @@ const AuthPage = () => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
+                disabled={loading}
               />
             </div>
             <div className="space-y-2">
@@ -151,6 +195,8 @@ const AuthPage = () => {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
+                disabled={loading}
+                minLength={6}
               />
             </div>
             <Button type="submit" className="w-full" disabled={loading}>
@@ -163,6 +209,7 @@ const AuthPage = () => {
               variant="link"
               onClick={() => setIsSignUp(!isSignUp)}
               className="text-sm"
+              disabled={loading}
             >
               {isSignUp 
                 ? 'Already have an account? Sign in' 

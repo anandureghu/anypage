@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -22,30 +21,46 @@ interface PDF {
 }
 
 const Dashboard = () => {
-  const { user, signOut } = useAuth();
+  const { user, signOut, loading: authLoading } = useAuth();
   const { toast } = useToast();
   const [pdfs, setPdfs] = useState<PDF[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [activeTab, setActiveTab] = useState('home');
 
+  // Redirect if not authenticated
+  useEffect(() => {
+    if (!authLoading && !user) {
+      console.log('User not authenticated, redirecting to auth');
+      window.location.href = '/auth';
+    }
+  }, [user, authLoading]);
+
   useEffect(() => {
     if (user) {
+      console.log('User authenticated, fetching PDFs');
       fetchPDFs();
     }
   }, [user]);
 
   const fetchPDFs = async () => {
     try {
+      console.log('Fetching PDFs for user:', user?.email);
       const { data, error } = await supabase
         .from('pdfs')
         .select('*')
         .order('last_opened', { ascending: false, nullsFirst: false })
         .order('upload_date', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching PDFs:', error);
+        throw error;
+      }
+      
+      console.log('Fetched PDFs:', data?.length || 0);
       setPdfs(data || []);
     } catch (error: any) {
+      console.error('Error in fetchPDFs:', error);
       toast({
         title: "Error",
         description: "Failed to load PDFs",
@@ -55,6 +70,19 @@ const Dashboard = () => {
       setLoading(false);
     }
   };
+
+  // Don't render if still loading auth or if user is not authenticated
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div>Loading...</div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return null; // Will redirect via useEffect
+  }
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -117,11 +145,6 @@ const Dashboard = () => {
     const mb = bytes / (1024 * 1024);
     return `${mb.toFixed(1)} MB`;
   };
-
-  if (!user) {
-    window.location.href = '/';
-    return null;
-  }
 
   return (
     <div className="min-h-screen bg-background">
