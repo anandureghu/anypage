@@ -9,7 +9,145 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      bookmarks: {
+        Row: {
+          created_at: string
+          id: string
+          note: string | null
+          page_number: number
+          pdf_id: string
+          title: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          note?: string | null
+          page_number: number
+          pdf_id: string
+          title: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          note?: string | null
+          page_number?: number
+          pdf_id?: string
+          title?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bookmarks_pdf_id_fkey"
+            columns: ["pdf_id"]
+            isOneToOne: false
+            referencedRelation: "pdfs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pdfs: {
+        Row: {
+          current_page: number | null
+          file_name: string
+          file_path: string
+          file_size: number | null
+          id: string
+          last_opened: string | null
+          title: string
+          total_pages: number | null
+          upload_date: string
+          user_id: string
+        }
+        Insert: {
+          current_page?: number | null
+          file_name: string
+          file_path: string
+          file_size?: number | null
+          id?: string
+          last_opened?: string | null
+          title: string
+          total_pages?: number | null
+          upload_date?: string
+          user_id: string
+        }
+        Update: {
+          current_page?: number | null
+          file_name?: string
+          file_path?: string
+          file_size?: number | null
+          id?: string
+          last_opened?: string | null
+          title?: string
+          total_pages?: number | null
+          upload_date?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          email: string | null
+          full_name: string | null
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id: string
+          updated_at?: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      reading_progress: {
+        Row: {
+          current_page: number
+          id: string
+          last_read: string
+          pdf_id: string
+          total_pages: number | null
+          user_id: string
+        }
+        Insert: {
+          current_page?: number
+          id?: string
+          last_read?: string
+          pdf_id: string
+          total_pages?: number | null
+          user_id: string
+        }
+        Update: {
+          current_page?: number
+          id?: string
+          last_read?: string
+          pdf_id?: string
+          total_pages?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reading_progress_pdf_id_fkey"
+            columns: ["pdf_id"]
+            isOneToOne: false
+            referencedRelation: "pdfs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
