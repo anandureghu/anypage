@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -87,30 +86,24 @@ const PDFReader = () => {
       setPdf(pdfData);
       setCurrentPage(pdfData.current_page || 1);
 
-      // Get PDF file URL with proper encoding
+      // Get PDF file URL and properly encode it
       const { data: urlData } = supabase.storage
         .from('pdfs')
         .getPublicUrl(pdfData.file_path);
 
-      console.log('PDF URL:', urlData.publicUrl);
-      
-      // Test if the PDF URL is accessible
-      try {
-        const response = await fetch(urlData.publicUrl, { method: 'HEAD' });
-        if (!response.ok) {
-          throw new Error(`PDF not accessible: ${response.status}`);
-        }
-        setPdfUrl(urlData.publicUrl);
-        setPdfError(false);
-      } catch (fetchError) {
-        console.error('PDF fetch error:', fetchError);
-        setPdfError(true);
-        toast({
-          title: "PDF Loading Error",
-          description: "The PDF file could not be loaded. It may be corrupted or inaccessible.",
-          variant: "destructive",
-        });
-      }
+      // Properly encode the URL to handle special characters
+      const encodedUrl = urlData.publicUrl.split('/').map((segment, index) => {
+        // Don't encode the protocol and domain parts
+        if (index < 3) return segment;
+        return encodeURIComponent(decodeURIComponent(segment));
+      }).join('/');
+
+      console.log('Original PDF URL:', urlData.publicUrl);
+      console.log('Encoded PDF URL:', encodedUrl);
+
+      // Set the URL and assume it might have CORS issues
+      setPdfUrl(encodedUrl);
+      setPdfError(false);
 
       // Update last opened time
       await supabase
@@ -244,6 +237,11 @@ const PDFReader = () => {
     }
   };
 
+  const handleIframeError = () => {
+    console.log('Iframe failed to load, showing fallback');
+    setPdfError(true);
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -277,7 +275,7 @@ const PDFReader = () => {
               variant="outline"
               size="sm"
               onClick={openInNewTab}
-              disabled={!pdfUrl || pdfError}
+              disabled={!pdfUrl}
             >
               <ExternalLink className="h-4 w-4 mr-2" />
               Open in Tab
@@ -286,7 +284,7 @@ const PDFReader = () => {
               variant="outline"
               size="sm"
               onClick={downloadPDF}
-              disabled={!pdfUrl || pdfError}
+              disabled={!pdfUrl}
             >
               <Download className="h-4 w-4 mr-2" />
               Download
@@ -349,7 +347,7 @@ const PDFReader = () => {
                       <div className="text-center">
                         <h3 className="text-lg font-semibold mb-2">PDF Preview Unavailable</h3>
                         <p className="text-sm mb-4">
-                          The PDF cannot be displayed in the browser, but you can still download it or open it in a new tab.
+                          The PDF cannot be displayed in the browser due to CORS restrictions or file encoding issues. You can still download it or open it in a new tab.
                         </p>
                         <div className="flex gap-2 justify-center">
                           <Button onClick={downloadPDF} disabled={!pdfUrl}>
@@ -361,15 +359,41 @@ const PDFReader = () => {
                             Open in New Tab
                           </Button>
                         </div>
+                        <p className="text-xs text-muted-foreground mt-4">
+                          Note: Opening in a new tab may work even when the preview doesn't.
+                        </p>
                       </div>
                     </div>
                   ) : pdfUrl ? (
-                    <iframe
-                      src={`${pdfUrl}#page=${currentPage}&zoom=${zoom}`}
-                      className="w-full h-full"
-                      title={pdf.title}
-                      onError={() => setPdfError(true)}
-                    />
+                    <div className="relative w-full h-full">
+                      <iframe
+                        src={`${pdfUrl}#page=${currentPage}&zoom=${zoom}`}
+                        className="w-full h-full"
+                        title={pdf.title}
+                        onError={handleIframeError}
+                        onLoad={(e) => {
+                          // Check if iframe loaded successfully
+                          const iframe = e.target as HTMLIFrameElement;
+                          try {
+                            // This will throw an error if CORS blocks access
+                            iframe.contentDocument?.title;
+                          } catch (error) {
+                            console.log('CORS restriction detected');
+                            setPdfError(true);
+                          }
+                        }}
+                      />
+                      <div className="absolute top-2 right-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setPdfError(true)}
+                          className="bg-white/90 hover:bg-white"
+                        >
+                          Having issues? Try fallback options
+                        </Button>
+                      </div>
+                    </div>
                   ) : (
                     <div className="flex items-center justify-center h-full text-muted-foreground">
                       Loading PDF content...
