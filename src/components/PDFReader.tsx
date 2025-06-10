@@ -16,7 +16,8 @@ import {
   ArrowLeft, 
   ZoomIn, 
   ZoomOut,
-  RotateCw
+  Download,
+  ExternalLink
 } from 'lucide-react';
 import { useParams, useNavigate } from 'react-router-dom';
 
@@ -50,6 +51,7 @@ const PDFReader = () => {
   const [bookmarkTitle, setBookmarkTitle] = useState('');
   const [bookmarkNote, setBookmarkNote] = useState('');
   const [loading, setLoading] = useState(true);
+  const [pdfError, setPdfError] = useState(false);
   const [zoom, setZoom] = useState(100);
 
   useEffect(() => {
@@ -85,13 +87,30 @@ const PDFReader = () => {
       setPdf(pdfData);
       setCurrentPage(pdfData.current_page || 1);
 
-      // Get PDF file URL
+      // Get PDF file URL with proper encoding
       const { data: urlData } = supabase.storage
         .from('pdfs')
         .getPublicUrl(pdfData.file_path);
 
       console.log('PDF URL:', urlData.publicUrl);
-      setPdfUrl(urlData.publicUrl);
+      
+      // Test if the PDF URL is accessible
+      try {
+        const response = await fetch(urlData.publicUrl, { method: 'HEAD' });
+        if (!response.ok) {
+          throw new Error(`PDF not accessible: ${response.status}`);
+        }
+        setPdfUrl(urlData.publicUrl);
+        setPdfError(false);
+      } catch (fetchError) {
+        console.error('PDF fetch error:', fetchError);
+        setPdfError(true);
+        toast({
+          title: "PDF Loading Error",
+          description: "The PDF file could not be loaded. It may be corrupted or inaccessible.",
+          variant: "destructive",
+        });
+      }
 
       // Update last opened time
       await supabase
@@ -208,6 +227,23 @@ const PDFReader = () => {
     }
   };
 
+  const openInNewTab = () => {
+    if (pdfUrl) {
+      window.open(pdfUrl, '_blank');
+    }
+  };
+
+  const downloadPDF = () => {
+    if (pdfUrl && pdf) {
+      const link = document.createElement('a');
+      link.href = pdfUrl;
+      link.download = pdf.title + '.pdf';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -237,6 +273,24 @@ const PDFReader = () => {
             <h1 className="text-xl font-semibold">{pdf.title}</h1>
           </div>
           <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={openInNewTab}
+              disabled={!pdfUrl || pdfError}
+            >
+              <ExternalLink className="h-4 w-4 mr-2" />
+              Open in Tab
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={downloadPDF}
+              disabled={!pdfUrl || pdfError}
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Download
+            </Button>
             <Button
               variant="outline"
               size="sm"
@@ -290,11 +344,31 @@ const PDFReader = () => {
               </CardHeader>
               <CardContent>
                 <div className="w-full h-[600px] border rounded-lg overflow-auto bg-gray-50">
-                  {pdfUrl ? (
+                  {pdfError ? (
+                    <div className="flex flex-col items-center justify-center h-full text-muted-foreground space-y-4">
+                      <div className="text-center">
+                        <h3 className="text-lg font-semibold mb-2">PDF Preview Unavailable</h3>
+                        <p className="text-sm mb-4">
+                          The PDF cannot be displayed in the browser, but you can still download it or open it in a new tab.
+                        </p>
+                        <div className="flex gap-2 justify-center">
+                          <Button onClick={downloadPDF} disabled={!pdfUrl}>
+                            <Download className="h-4 w-4 mr-2" />
+                            Download PDF
+                          </Button>
+                          <Button variant="outline" onClick={openInNewTab} disabled={!pdfUrl}>
+                            <ExternalLink className="h-4 w-4 mr-2" />
+                            Open in New Tab
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  ) : pdfUrl ? (
                     <iframe
                       src={`${pdfUrl}#page=${currentPage}&zoom=${zoom}`}
                       className="w-full h-full"
                       title={pdf.title}
+                      onError={() => setPdfError(true)}
                     />
                   ) : (
                     <div className="flex items-center justify-center h-full text-muted-foreground">
