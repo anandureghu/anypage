@@ -1,13 +1,28 @@
-import React, { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
-import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
-import { Upload, FileText, BookOpen, Bookmark, User, LogOut, Plus } from 'lucide-react';
-import { formatDistanceToNow } from 'date-fns';
+import React, { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import {
+  Upload,
+  FileText,
+  BookOpen,
+  Bookmark,
+  User,
+  LogOut,
+  Plus,
+} from "lucide-react";
+import { formatDistanceToNow } from "date-fns";
+import Logo from "./shared/logo";
 
 interface PDF {
   id: string;
@@ -26,41 +41,41 @@ const Dashboard = () => {
   const [pdfs, setPdfs] = useState<PDF[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
-  const [activeTab, setActiveTab] = useState('home');
+  const [activeTab, setActiveTab] = useState("home");
 
   // Redirect if not authenticated
   useEffect(() => {
     if (!authLoading && !user) {
-      console.log('User not authenticated, redirecting to auth');
-      window.location.href = '/auth';
+      console.log("User not authenticated, redirecting to auth");
+      window.location.href = "/auth";
     }
   }, [user, authLoading]);
 
   useEffect(() => {
     if (user) {
-      console.log('User authenticated, fetching PDFs');
+      console.log("User authenticated, fetching PDFs");
       fetchPDFs();
     }
   }, [user]);
 
   const fetchPDFs = async () => {
     try {
-      console.log('Fetching PDFs for user:', user?.email);
+      console.log("Fetching PDFs for user:", user?.email);
       const { data, error } = await supabase
-        .from('pdfs')
-        .select('*')
-        .order('last_opened', { ascending: false, nullsFirst: false })
-        .order('upload_date', { ascending: false });
+        .from("pdfs")
+        .select("*")
+        .order("last_opened", { ascending: false, nullsFirst: false })
+        .order("upload_date", { ascending: false });
 
       if (error) {
-        console.error('Error fetching PDFs:', error);
+        console.error("Error fetching PDFs:", error);
         throw error;
       }
-      
-      console.log('Fetched PDFs:', data?.length || 0);
+
+      console.log("Fetched PDFs:", data?.length || 0);
       setPdfs(data || []);
-    } catch (error: any) {
-      console.error('Error in fetchPDFs:', error);
+    } catch (error) {
+      console.error("Error in fetchPDFs:", error);
       toast({
         title: "Error",
         description: "Failed to load PDFs",
@@ -88,7 +103,7 @@ const Dashboard = () => {
     const file = e.target.files?.[0];
     if (!file || !user) return;
 
-    if (file.type !== 'application/pdf') {
+    if (file.type !== "application/pdf") {
       toast({
         title: "Error",
         description: "Please select a PDF file",
@@ -100,22 +115,20 @@ const Dashboard = () => {
     setUploading(true);
     try {
       const fileName = `${user.id}/${Date.now()}_${file.name}`;
-      
+
       const { error: uploadError } = await supabase.storage
-        .from('pdfs')
+        .from("pdfs")
         .upload(fileName, file);
 
       if (uploadError) throw uploadError;
 
-      const { error: dbError } = await supabase
-        .from('pdfs')
-        .insert({
-          user_id: user.id,
-          title: file.name.replace('.pdf', ''),
-          file_name: file.name,
-          file_path: fileName,
-          file_size: file.size,
-        });
+      const { error: dbError } = await supabase.from("pdfs").insert({
+        user_id: user.id,
+        title: file.name.replace(".pdf", ""),
+        file_name: file.name,
+        file_path: fileName,
+        file_size: file.size,
+      });
 
       if (dbError) throw dbError;
 
@@ -125,7 +138,7 @@ const Dashboard = () => {
       });
 
       fetchPDFs();
-    } catch (error: any) {
+    } catch (error) {
       toast({
         title: "Error",
         description: "Failed to upload PDF",
@@ -141,7 +154,7 @@ const Dashboard = () => {
   };
 
   const formatFileSize = (bytes: number | null) => {
-    if (!bytes) return 'Unknown size';
+    if (!bytes) return "Unknown size";
     const mb = bytes / (1024 * 1024);
     return `${mb.toFixed(1)} MB`;
   };
@@ -151,7 +164,7 @@ const Dashboard = () => {
       {/* Header */}
       <header className="border-b bg-card">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-primary">Rempd</h1>
+          <Logo />
           <div className="flex items-center gap-4">
             <span className="text-sm text-muted-foreground">
               Welcome, {user.user_metadata?.full_name || user.email}
@@ -170,25 +183,25 @@ const Dashboard = () => {
           <aside className="lg:w-64">
             <nav className="space-y-2">
               <Button
-                variant={activeTab === 'home' ? 'default' : 'ghost'}
+                variant={activeTab === "home" ? "default" : "ghost"}
                 className="w-full justify-start"
-                onClick={() => setActiveTab('home')}
+                onClick={() => setActiveTab("home")}
               >
                 <FileText className="h-4 w-4 mr-2" />
                 My PDFs
               </Button>
               <Button
-                variant={activeTab === 'bookmarks' ? 'default' : 'ghost'}
+                variant={activeTab === "bookmarks" ? "default" : "ghost"}
                 className="w-full justify-start"
-                onClick={() => setActiveTab('bookmarks')}
+                onClick={() => setActiveTab("bookmarks")}
               >
                 <Bookmark className="h-4 w-4 mr-2" />
                 Bookmarks
               </Button>
               <Button
-                variant={activeTab === 'profile' ? 'default' : 'ghost'}
+                variant={activeTab === "profile" ? "default" : "ghost"}
                 className="w-full justify-start"
-                onClick={() => setActiveTab('profile')}
+                onClick={() => setActiveTab("profile")}
               >
                 <User className="h-4 w-4 mr-2" />
                 Profile
@@ -198,7 +211,7 @@ const Dashboard = () => {
 
           {/* Main Content */}
           <main className="flex-1">
-            {activeTab === 'home' && (
+            {activeTab === "home" && (
               <div>
                 <div className="flex items-center justify-between mb-6">
                   <h2 className="text-3xl font-bold">My PDF Library</h2>
@@ -215,7 +228,7 @@ const Dashboard = () => {
                       <Button asChild disabled={uploading}>
                         <span className="cursor-pointer">
                           {uploading ? (
-                            'Uploading...'
+                            "Uploading..."
                           ) : (
                             <>
                               <Plus className="h-4 w-4 mr-2" />
@@ -234,7 +247,9 @@ const Dashboard = () => {
                   <Card className="text-center py-12">
                     <CardContent>
                       <Upload className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                      <h3 className="text-lg font-semibold mb-2">No PDFs yet</h3>
+                      <h3 className="text-lg font-semibold mb-2">
+                        No PDFs yet
+                      </h3>
                       <p className="text-muted-foreground mb-4">
                         Upload your first PDF to get started with Rempd
                       </p>
@@ -251,18 +266,30 @@ const Dashboard = () => {
                 ) : (
                   <div className="grid gap-4">
                     {pdfs.map((pdf) => (
-                      <Card key={pdf.id} className="hover:shadow-md transition-shadow cursor-pointer">
-                        <CardContent className="p-6" onClick={() => openPDF(pdf)}>
+                      <Card
+                        key={pdf.id}
+                        className="hover:shadow-md transition-shadow cursor-pointer"
+                      >
+                        <CardContent
+                          className="p-6"
+                          onClick={() => openPDF(pdf)}
+                        >
                           <div className="flex items-start justify-between">
                             <div className="flex-1">
-                              <h3 className="font-semibold text-lg mb-2">{pdf.title}</h3>
+                              <h3 className="font-semibold text-lg mb-2">
+                                {pdf.title}
+                              </h3>
                               <div className="flex items-center gap-4 text-sm text-muted-foreground mb-2">
                                 <span>{formatFileSize(pdf.file_size)}</span>
                                 {pdf.total_pages && (
                                   <span>{pdf.total_pages} pages</span>
                                 )}
                                 <span>
-                                  Uploaded {formatDistanceToNow(new Date(pdf.upload_date), { addSuffix: true })}
+                                  Uploaded{" "}
+                                  {formatDistanceToNow(
+                                    new Date(pdf.upload_date),
+                                    { addSuffix: true }
+                                  )}
                                 </span>
                               </div>
                               {pdf.last_opened && (
@@ -271,7 +298,11 @@ const Dashboard = () => {
                                     Page {pdf.current_page}
                                   </Badge>
                                   <span className="text-sm text-muted-foreground">
-                                    Last read {formatDistanceToNow(new Date(pdf.last_opened), { addSuffix: true })}
+                                    Last read{" "}
+                                    {formatDistanceToNow(
+                                      new Date(pdf.last_opened),
+                                      { addSuffix: true }
+                                    )}
                                   </span>
                                 </div>
                               )}
@@ -286,43 +317,52 @@ const Dashboard = () => {
               </div>
             )}
 
-            {activeTab === 'bookmarks' && (
+            {activeTab === "bookmarks" && (
               <div>
                 <h2 className="text-3xl font-bold mb-6">My Bookmarks</h2>
                 <Card>
                   <CardContent className="p-6 text-center">
                     <Bookmark className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
                     <p className="text-muted-foreground">
-                      Your bookmarks will appear here when you start reading PDFs
+                      Your bookmarks will appear here when you start reading
+                      PDFs
                     </p>
                   </CardContent>
                 </Card>
               </div>
             )}
 
-            {activeTab === 'profile' && (
+            {activeTab === "profile" && (
               <div>
                 <h2 className="text-3xl font-bold mb-6">Profile</h2>
                 <Card>
                   <CardHeader>
                     <CardTitle>Account Information</CardTitle>
-                    <CardDescription>Your Rempd account details</CardDescription>
+                    <CardDescription>
+                      Your Rempd account details
+                    </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div>
                       <label className="text-sm font-medium">Email</label>
-                      <p className="text-sm text-muted-foreground">{user.email}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {user.email}
+                      </p>
                     </div>
                     <div>
                       <label className="text-sm font-medium">Full Name</label>
                       <p className="text-sm text-muted-foreground">
-                        {user.user_metadata?.full_name || 'Not set'}
+                        {user.user_metadata?.full_name || "Not set"}
                       </p>
                     </div>
                     <div>
-                      <label className="text-sm font-medium">Member Since</label>
+                      <label className="text-sm font-medium">
+                        Member Since
+                      </label>
                       <p className="text-sm text-muted-foreground">
-                        {formatDistanceToNow(new Date(user.created_at), { addSuffix: true })}
+                        {formatDistanceToNow(new Date(user.created_at), {
+                          addSuffix: true,
+                        })}
                       </p>
                     </div>
                   </CardContent>

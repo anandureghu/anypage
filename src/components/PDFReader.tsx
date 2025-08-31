@@ -1,24 +1,30 @@
-import React, { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Badge } from '@/components/ui/badge';
-import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
-import { 
-  ChevronLeft, 
-  ChevronRight, 
-  Bookmark, 
-  BookmarkPlus, 
-  ArrowLeft, 
-  ZoomIn, 
+import React, { useState, useEffect } from "react";
+import { Document, Page, pdfjs } from "react-pdf";
+import "react-pdf/dist/esm/Page/AnnotationLayer.css";
+import "react-pdf/dist/esm/Page/TextLayer.css";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Bookmark,
+  BookmarkPlus,
+  ArrowLeft,
+  ZoomIn,
   ZoomOut,
   Download,
-  ExternalLink
-} from 'lucide-react';
-import { useParams, useNavigate } from 'react-router-dom';
+  ExternalLink,
+} from "lucide-react";
+import { useParams, useNavigate } from "react-router-dom";
+
+// Configure PDF.js worker
+pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
 interface PDF {
   id: string;
@@ -41,17 +47,18 @@ const PDFReader = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
-  
+
   const [pdf, setPdf] = useState<PDF | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const [pdfUrl, setPdfUrl] = useState<string>('');
+  const [pdfUrl, setPdfUrl] = useState<string>("");
   const [bookmarks, setBookmarks] = useState<BookmarkType[]>([]);
   const [showBookmarkDialog, setShowBookmarkDialog] = useState(false);
-  const [bookmarkTitle, setBookmarkTitle] = useState('');
-  const [bookmarkNote, setBookmarkNote] = useState('');
+  const [bookmarkTitle, setBookmarkTitle] = useState("");
+  const [bookmarkNote, setBookmarkNote] = useState("");
   const [loading, setLoading] = useState(true);
   const [pdfError, setPdfError] = useState(false);
-  const [zoom, setZoom] = useState(100);
+  const [pdfScale, setPdfScale] = useState(1.0); // Renamed from zoom, default to 1.0 for scale
+  const [numPages, setNumPages] = useState<number | null>(null);
 
   useEffect(() => {
     if (!user || !id) return;
@@ -68,38 +75,35 @@ const PDFReader = () => {
 
   const loadPDF = async () => {
     try {
-      console.log('Loading PDF with ID:', id);
-      
       // Get PDF metadata
       const { data: pdfData, error: pdfError } = await supabase
-        .from('pdfs')
-        .select('*')
-        .eq('id', id)
+        .from("pdfs")
+        .select("*")
+        .eq("id", id)
         .single();
 
       if (pdfError) {
-        console.error('Error loading PDF metadata:', pdfError);
+        console.error("Error loading PDF metadata:", pdfError);
         throw pdfError;
       }
 
-      console.log('PDF metadata loaded:', pdfData);
       setPdf(pdfData);
       setCurrentPage(pdfData.current_page || 1);
 
       // Get PDF file URL and properly encode it
       const { data: urlData } = supabase.storage
-        .from('pdfs')
+        .from("pdfs")
         .getPublicUrl(pdfData.file_path);
 
       // Properly encode the URL to handle special characters
-      const encodedUrl = urlData.publicUrl.split('/').map((segment, index) => {
-        // Don't encode the protocol and domain parts
-        if (index < 3) return segment;
-        return encodeURIComponent(decodeURIComponent(segment));
-      }).join('/');
-
-      console.log('Original PDF URL:', urlData.publicUrl);
-      console.log('Encoded PDF URL:', encodedUrl);
+      const encodedUrl = urlData.publicUrl
+        .split("/")
+        .map((segment, index) => {
+          // Don't encode the protocol and domain parts
+          if (index < 3) return segment;
+          return encodeURIComponent(decodeURIComponent(segment));
+        })
+        .join("/");
 
       // Set the URL and assume it might have CORS issues
       setPdfUrl(encodedUrl);
@@ -107,18 +111,17 @@ const PDFReader = () => {
 
       // Update last opened time
       await supabase
-        .from('pdfs')
+        .from("pdfs")
         .update({ last_opened: new Date().toISOString() })
-        .eq('id', id);
-
-    } catch (error: any) {
-      console.error('Error loading PDF:', error);
+        .eq("id", id);
+    } catch (error: unknown) {
+      console.error("Error loading PDF:", error);
       toast({
         title: "Error",
         description: "Failed to load PDF",
         variant: "destructive",
       });
-      navigate('/dashboard');
+      navigate("/dashboard");
     } finally {
       setLoading(false);
     }
@@ -127,15 +130,15 @@ const PDFReader = () => {
   const loadBookmarks = async () => {
     try {
       const { data, error } = await supabase
-        .from('bookmarks')
-        .select('*')
-        .eq('pdf_id', id)
-        .order('page_number', { ascending: true });
+        .from("bookmarks")
+        .select("*")
+        .eq("pdf_id", id)
+        .order("page_number", { ascending: true });
 
       if (error) throw error;
       setBookmarks(data || []);
-    } catch (error: any) {
-      console.error('Error loading bookmarks:', error);
+    } catch (error: unknown) {
+      console.error("Error loading bookmarks:", error);
     }
   };
 
@@ -145,24 +148,20 @@ const PDFReader = () => {
     try {
       // Update PDF current page
       await supabase
-        .from('pdfs')
+        .from("pdfs")
         .update({ current_page: currentPage })
-        .eq('id', pdf.id);
+        .eq("id", pdf.id);
 
       // Update or insert reading progress
-      await supabase
-        .from('reading_progress')
-        .upsert({
-          user_id: user.id,
-          pdf_id: pdf.id,
-          current_page: currentPage,
-          total_pages: pdf.total_pages,
-          last_read: new Date().toISOString()
-        });
-
-      console.log('Reading progress updated:', currentPage);
-    } catch (error: any) {
-      console.error('Error updating reading progress:', error);
+      await supabase.from("reading_progress").upsert({
+        user_id: user.id,
+        pdf_id: pdf.id,
+        current_page: currentPage,
+        total_pages: pdf.total_pages,
+        last_read: new Date().toISOString(),
+      });
+    } catch (error: unknown) {
+      console.error("Error updating reading progress:", error);
     }
   };
 
@@ -170,15 +169,13 @@ const PDFReader = () => {
     if (!pdf || !user || !bookmarkTitle.trim()) return;
 
     try {
-      const { error } = await supabase
-        .from('bookmarks')
-        .insert({
-          user_id: user.id,
-          pdf_id: pdf.id,
-          page_number: currentPage,
-          title: bookmarkTitle.trim(),
-          note: bookmarkNote.trim() || null
-        });
+      const { error } = await supabase.from("bookmarks").insert({
+        user_id: user.id,
+        pdf_id: pdf.id,
+        page_number: currentPage,
+        title: bookmarkTitle.trim(),
+        note: bookmarkNote.trim() || null,
+      });
 
       if (error) throw error;
 
@@ -188,11 +185,11 @@ const PDFReader = () => {
       });
 
       setShowBookmarkDialog(false);
-      setBookmarkTitle('');
-      setBookmarkNote('');
+      setBookmarkTitle("");
+      setBookmarkNote("");
       loadBookmarks();
-    } catch (error: any) {
-      console.error('Error creating bookmark:', error);
+    } catch (error: unknown) {
+      console.error("Error creating bookmark:", error);
       toast({
         title: "Error",
         description: "Failed to create bookmark",
@@ -212,34 +209,63 @@ const PDFReader = () => {
     setCurrentPage(page);
   };
 
-  const handleZoom = (direction: 'in' | 'out') => {
-    if (direction === 'in') {
-      setZoom(prev => Math.min(prev + 25, 200));
+  const handleZoom = (direction: "in" | "out") => {
+    const zoomStep = 0.25;
+    const minScale = 0.5;
+    const maxScale = 3.0;
+
+    if (direction === "in") {
+      setPdfScale((prev) => Math.min(prev + zoomStep, maxScale));
     } else {
-      setZoom(prev => Math.max(prev - 25, 50));
+      setPdfScale((prev) => Math.max(prev - zoomStep, minScale));
     }
   };
 
   const openInNewTab = () => {
     if (pdfUrl) {
-      window.open(pdfUrl, '_blank');
+      window.open(pdfUrl, "_blank");
     }
   };
 
   const downloadPDF = () => {
     if (pdfUrl && pdf) {
-      const link = document.createElement('a');
+      const link = document.createElement("a");
       link.href = pdfUrl;
-      link.download = pdf.title + '.pdf';
+      link.download = pdf.title + ".pdf";
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
     }
   };
 
-  const handleIframeError = () => {
-    console.log('Iframe failed to load, showing fallback');
+  const onDocumentLoadSuccess = ({
+    numPages: nextNumPages,
+  }: {
+    numPages: number;
+  }) => {
+    setNumPages(nextNumPages);
+    setPdfError(false);
+    // Potentially update total_pages in DB if it's null or different
+    if (pdf && (pdf.total_pages === null || pdf.total_pages !== nextNumPages)) {
+      supabase
+        .from("pdfs")
+        .update({ total_pages: nextNumPages })
+        .eq("id", pdf.id)
+        .then(({ error }) => {
+          if (error) console.error("Error updating total_pages in DB:", error);
+          else if (pdf) setPdf({ ...pdf, total_pages: nextNumPages });
+        });
+    }
+  };
+
+  const onDocumentLoadError = (error: Error) => {
+    console.error("Error while loading document: ", error);
     setPdfError(true);
+    toast({
+      title: "Error loading PDF",
+      description: error.message || "Could not load the PDF file.",
+      variant: "destructive",
+    });
   };
 
   if (loading) {
@@ -264,7 +290,11 @@ const PDFReader = () => {
       <header className="border-b bg-card">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Button variant="ghost" size="sm" onClick={() => navigate('/dashboard')}>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate("/dashboard")}
+            >
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back to Library
             </Button>
@@ -318,82 +348,102 @@ const PDFReader = () => {
                       <ChevronLeft className="h-4 w-4" />
                     </Button>
                     <span className="text-sm">
-                      Page {currentPage} of {pdf.total_pages || '?'}
+                      Page {currentPage} of {numPages || pdf.total_pages || "?"}
                     </span>
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => handlePageChange(currentPage + 1)}
-                      disabled={pdf.total_pages ? currentPage >= pdf.total_pages : false}
+                      disabled={
+                        numPages
+                          ? currentPage >= numPages
+                          : pdf.total_pages
+                          ? currentPage >= pdf.total_pages
+                          : true
+                      }
                     >
                       <ChevronRight className="h-4 w-4" />
                     </Button>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Button variant="outline" size="sm" onClick={() => handleZoom('out')}>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleZoom("out")}
+                      disabled={pdfScale <= 0.5}
+                    >
                       <ZoomOut className="h-4 w-4" />
                     </Button>
-                    <span className="text-sm min-w-[60px] text-center">{zoom}%</span>
-                    <Button variant="outline" size="sm" onClick={() => handleZoom('in')}>
+                    <span className="text-sm min-w-[60px] text-center">
+                      {Math.round(pdfScale * 100)}%
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleZoom("in")}
+                      disabled={pdfScale >= 3.0}
+                    >
                       <ZoomIn className="h-4 w-4" />
                     </Button>
                   </div>
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="w-full h-[600px] border rounded-lg overflow-auto bg-gray-50">
+                <div className="w-full h-[calc(100vh-200px)] border rounded-lg overflow-auto bg-gray-50 flex justify-center">
+                  {" "}
+                  {/* Adjusted height and centering */}
                   {pdfError ? (
-                    <div className="flex flex-col items-center justify-center h-full text-muted-foreground space-y-4">
+                    <div className="flex flex-col items-center justify-center h-full text-muted-foreground space-y-4 p-4">
                       <div className="text-center">
-                        <h3 className="text-lg font-semibold mb-2">PDF Preview Unavailable</h3>
+                        <h3 className="text-lg font-semibold mb-2">
+                          PDF Preview Unavailable
+                        </h3>
                         <p className="text-sm mb-4">
-                          The PDF cannot be displayed in the browser due to CORS restrictions or file encoding issues. You can still download it or open it in a new tab.
+                          The PDF could not be displayed. This might be due to
+                          network issues, file corruption, or format
+                          incompatibility. You can try downloading it or opening
+                          it in a new tab.
                         </p>
                         <div className="flex gap-2 justify-center">
                           <Button onClick={downloadPDF} disabled={!pdfUrl}>
                             <Download className="h-4 w-4 mr-2" />
                             Download PDF
                           </Button>
-                          <Button variant="outline" onClick={openInNewTab} disabled={!pdfUrl}>
+                          <Button
+                            variant="outline"
+                            onClick={openInNewTab}
+                            disabled={!pdfUrl}
+                          >
                             <ExternalLink className="h-4 w-4 mr-2" />
                             Open in New Tab
                           </Button>
                         </div>
-                        <p className="text-xs text-muted-foreground mt-4">
-                          Note: Opening in a new tab may work even when the preview doesn't.
-                        </p>
                       </div>
                     </div>
                   ) : pdfUrl ? (
-                    <div className="relative w-full h-full">
-                      <iframe
-                        src={`${pdfUrl}#page=${currentPage}&zoom=${zoom}`}
-                        className="w-full h-full"
-                        title={pdf.title}
-                        onError={handleIframeError}
-                        onLoad={(e) => {
-                          // Check if iframe loaded successfully
-                          const iframe = e.target as HTMLIFrameElement;
-                          try {
-                            // This will throw an error if CORS blocks access
-                            iframe.contentDocument?.title;
-                          } catch (error) {
-                            console.log('CORS restriction detected');
-                            setPdfError(true);
-                          }
-                        }}
+                    <Document
+                      file={pdfUrl}
+                      onLoadSuccess={onDocumentLoadSuccess}
+                      onError={onDocumentLoadError}
+                      loading={
+                        <div className="flex items-center justify-center h-full">
+                          Loading PDF document...
+                        </div>
+                      }
+                      className="flex justify-center" // Centering Document component itself
+                    >
+                      <Page
+                        pageNumber={currentPage}
+                        scale={pdfScale}
+                        renderTextLayer={true}
+                        renderAnnotationLayer={true}
+                        loading={
+                          <div className="flex items-center justify-center h-full">
+                            Loading page {currentPage}...
+                          </div>
+                        }
                       />
-                      <div className="absolute top-2 right-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setPdfError(true)}
-                          className="bg-white/90 hover:bg-white"
-                        >
-                          Having issues? Try fallback options
-                        </Button>
-                      </div>
-                    </div>
+                    </Document>
                   ) : (
                     <div className="flex items-center justify-center h-full text-muted-foreground">
                       Loading PDF content...
@@ -416,7 +466,8 @@ const PDFReader = () => {
               <CardContent>
                 {bookmarks.length === 0 ? (
                   <p className="text-muted-foreground text-sm">
-                    No bookmarks yet. Click the bookmark button to save your current page.
+                    No bookmarks yet. Click the bookmark button to save your
+                    current page.
                   </p>
                 ) : (
                   <div className="space-y-3">
@@ -427,13 +478,17 @@ const PDFReader = () => {
                         onClick={() => goToBookmark(bookmark.page_number)}
                       >
                         <div className="flex items-center justify-between mb-1">
-                          <h4 className="font-medium text-sm">{bookmark.title}</h4>
+                          <h4 className="font-medium text-sm">
+                            {bookmark.title}
+                          </h4>
                           <Badge variant="secondary">
                             Page {bookmark.page_number}
                           </Badge>
                         </div>
                         {bookmark.note && (
-                          <p className="text-xs text-muted-foreground">{bookmark.note}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {bookmark.note}
+                          </p>
                         )}
                       </div>
                     ))}
@@ -478,7 +533,10 @@ const PDFReader = () => {
                 >
                   Cancel
                 </Button>
-                <Button onClick={createBookmark} disabled={!bookmarkTitle.trim()}>
+                <Button
+                  onClick={createBookmark}
+                  disabled={!bookmarkTitle.trim()}
+                >
                   Save Bookmark
                 </Button>
               </div>

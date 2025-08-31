@@ -1,8 +1,19 @@
+@import url("https://fonts.googleapis.com/css2?family=Fustat:wght@200..800&family=Gilda+Display&family=Inter:ital,wght@0,100..900;1,100..900&display=swap");
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 /* Definition of the design system. All colors, gradients, fonts, etc should be defined here. */
+
+:root {
+  --font-highlight: "Gilda Display", serif;
+  --font-body: "Fustat", sans-serif;
+  --font-secondary: "Inter", sans-serif;
+}
+
+* {
+  font-family: var(--font-body);
+}
 
 @layer base {
   :root {
