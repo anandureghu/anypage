@@ -337,7 +337,7 @@ const PDFReader = () => {
         </div>
       </header>
 
-      <div className="container mx-auto px-4 py-6">
+      <div className="container mx-auto px-4 py-6 max-sm:p-0">
         <div className="flex gap-6 max-md:flex-col">
           {/* PDF Viewer */}
           <div className="flex-1">
@@ -394,8 +394,8 @@ const PDFReader = () => {
                   </div>
                 </div>
               </CardHeader>
-              <CardContent>
-                <div className="w-full h-[calc(100vh-200px)] border rounded-lg overflow-auto bg-gray-50 flex justify-center">
+              <CardContent className="max-sm:p-0">
+                <div className="w-full h-[calc(100vh-200px)] max-sm:h-[calc(100vh-60px)] border rounded-lg overflow-auto bg-gray-50 flex justify-center">
                   {" "}
                   {/* Adjusted height and centering */}
                   {pdfError ? (
@@ -457,7 +457,7 @@ const PDFReader = () => {
                   )}
                 </div>
               </CardContent>
-              <CardFooter>
+              <CardFooter className="max-sm:px-5 max-sm:py-3">
                 <div className="flex items-center gap-4 md:hidden justify-between w-full">
                   <Button
                     variant="outline"
