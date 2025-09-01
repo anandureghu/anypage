@@ -13,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import Logo from "./shared/logo";
 
 const AuthPage = () => {
   const [isSignUp, setIsSignUp] = useState(false);
@@ -141,8 +142,8 @@ const AuthPage = () => {
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back
           </Button>
-          <CardTitle className="text-2xl font-bold text-primary">
-            Rempd
+          <CardTitle className="text-2xl font-bold text-primary flex justify-center items-center">
+            <Logo />
           </CardTitle>
           <CardDescription>
             {isSignUp ? "Create your account" : "Sign in to your account"}

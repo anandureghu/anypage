@@ -251,7 +251,7 @@ const Dashboard = () => {
                         No PDFs yet
                       </h3>
                       <p className="text-muted-foreground mb-4">
-                        Upload your first PDF to get started with Rempd
+                        Upload your first PDF to get started with anypage
                       </p>
                       <label htmlFor="pdf-upload">
                         <Button asChild>
@@ -339,7 +339,8 @@ const Dashboard = () => {
                   <CardHeader>
                     <CardTitle>Account Information</CardTitle>
                     <CardDescription>
-                      Your Rempd account details
+                      Your <span className="font-highlight">anypage</span>{" "}
+                      account details
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">

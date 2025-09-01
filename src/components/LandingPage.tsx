@@ -69,7 +69,7 @@ const LandingPage = () => {
       {/* Features Section */}
       <section className="container mx-auto px-4 py-20">
         <h3 className="text-3xl font-bold text-center mb-12">
-          Why Choose Rempd?
+          Why Choose anypage?
         </h3>
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
           <Card className="hover:shadow-lg transition-shadow">
@@ -99,7 +99,7 @@ const LandingPage = () => {
               <BookOpen className="h-12 w-12 text-primary mb-4" />
               <CardTitle>Reading Progress</CardTitle>
               <CardDescription>
-                Never lose your place. Rempd remembers exactly where you left
+                Never lose your place. anypage remembers exactly where you left
                 off in every document.
               </CardDescription>
             </CardHeader>
@@ -147,7 +147,8 @@ const LandingPage = () => {
             Ready to Transform Your PDF Reading?
           </h3>
           <p className="text-xl mb-8 opacity-90">
-            Join thousands of users who have made Rempd their go-to PDF reader.
+            Join thousands of users who have made anypage their go-to PDF
+            reader.
           </p>
           <Button
             size="lg"
@@ -163,7 +164,7 @@ const LandingPage = () => {
       {/* Footer */}
       <footer className="border-t bg-card py-12">
         <div className="container mx-auto px-4 text-center text-muted-foreground">
-          <p>&copy; 2024 Rempd. All rights reserved.</p>
+          <p>&copy; {new Date().getFullYear()} anypage. All rights reserved.</p>
         </div>
       </footer>
     </div>
