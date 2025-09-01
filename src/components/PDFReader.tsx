@@ -3,7 +3,13 @@ import { Document, Page, pdfjs } from "react-pdf";
 import "react-pdf/dist/esm/Page/AnnotationLayer.css";
 import "react-pdf/dist/esm/Page/TextLayer.css";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
@@ -288,8 +294,8 @@ const PDFReader = () => {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="border-b bg-card">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-4">
+        <div className="container mx-auto px-4 py-4 flex items-center justify-between max-md:items-end max-md:gap-2">
+          <div className="flex items-center gap-4 max-md:flex-col max-md:items-start">
             <Button
               variant="ghost"
               size="sm"
@@ -300,7 +306,7 @@ const PDFReader = () => {
             </Button>
             <h1 className="text-xl font-semibold">{pdf.title}</h1>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 max-md:flex-col max-md:items-end">
             <Button
               variant="outline"
               size="sm"
@@ -332,13 +338,13 @@ const PDFReader = () => {
       </header>
 
       <div className="container mx-auto px-4 py-6">
-        <div className="flex gap-6">
+        <div className="flex gap-6 max-md:flex-col">
           {/* PDF Viewer */}
           <div className="flex-1">
             <Card>
               <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
+                <div className="flex items-center justify-between max-md:justify-center">
+                  <div className="flex items-center gap-4 max-md:hidden">
                     <Button
                       variant="outline"
                       size="sm"
@@ -451,11 +457,40 @@ const PDFReader = () => {
                   )}
                 </div>
               </CardContent>
+              <CardFooter>
+                <div className="flex items-center gap-4 md:hidden justify-between w-full">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    disabled={currentPage <= 1}
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  <span className="text-sm">
+                    Page {currentPage} of {numPages || pdf.total_pages || "?"}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    disabled={
+                      numPages
+                        ? currentPage >= numPages
+                        : pdf.total_pages
+                        ? currentPage >= pdf.total_pages
+                        : true
+                    }
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              </CardFooter>
             </Card>
           </div>
 
           {/* Sidebar */}
-          <div className="w-80">
+          <div className="w-80 max-md:mx-auto">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">

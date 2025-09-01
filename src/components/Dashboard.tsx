@@ -166,7 +166,7 @@ const Dashboard = () => {
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <Logo />
           <div className="flex items-center gap-4">
-            <span className="text-sm text-muted-foreground">
+            <span className="text-sm text-muted-foreground max-sm:hidden">
               Welcome, {user.user_metadata?.full_name || user.email}
             </span>
             <Button variant="outline" size="sm" onClick={signOut}>
@@ -174,6 +174,11 @@ const Dashboard = () => {
               Sign Out
             </Button>
           </div>
+        </div>
+        <div className=" max-sm:visible sm:hidden flex items-center justify-center">
+          <span className="text-sm text-muted-foreground">
+            Welcome, {user.user_metadata?.full_name || user.email}
+          </span>
         </div>
       </header>
 
@@ -214,7 +219,9 @@ const Dashboard = () => {
             {activeTab === "home" && (
               <div>
                 <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-3xl font-bold">My PDF Library</h2>
+                  <h2 className="text-3xl font-bold max-sm:text-xl">
+                    My PDF Library
+                  </h2>
                   <div className="flex items-center gap-4">
                     <input
                       type="file"
